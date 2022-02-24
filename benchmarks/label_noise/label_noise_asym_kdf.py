@@ -9,7 +9,8 @@ from sklearn.ensemble import RandomForestClassifier as rf
 
 
 def label_noise_gp(n_samples, p0=0.0, p1=0.0, n_estimators=500):
-    """Single label noise trial with proportion p of flipped labels."""
+    """Single label noise trial with proportion p0 and p1 of flipped
+    labels for class 0 and class 1, respectively."""
     X, y = generate_gaussian_parity(n_samples, cluster_std=0.5)
     X_test, y_test = generate_gaussian_parity(1000, cluster_std=0.5)
 
@@ -95,8 +96,6 @@ for j, p0 in enumerate(p0s):
 
     delta_med = np.array(err_kdf_med) - np.array(err_rf_med)
     mapping[j, :] = delta_med
-    # delta_25_quantile = np.array(err_kdf_25_quantile) - np.array(err_rf_25_quantile)
-    # delta_75_quantile = np.array(err_kdf_75_quantile) - np.array(err_rf_75_quantile)
 
     ax.plot(p1s, delta_med, label="p0 = {:.2f}".format(p0))
 
@@ -114,7 +113,7 @@ ax.text(1.05, -0.01, "KDF Wins", transform=ax.get_yaxis_transform())
 ax.text(1.05, 0.01, "RF Wins", transform=ax.get_yaxis_transform())
 plt.tight_layout()
 plt.title("KDF - RF Errors: Gaussian XOR")
-plt.savefig("label_noise/xor_kdf.pdf")
+plt.savefig("xor_kdf.pdf")
 # plt.show()
 
 # Plot figure 2
@@ -135,16 +134,5 @@ ax.set_xlabel("P1")
 ax.set_ylabel("P0")
 plt.title("KDF - RF Errors: Gaussian XOR")
 plt.tight_layout()
-plt.savefig("label_noise/xor_heatmap_kdf.pdf")
-# plt.show()
-
-# Plot figure 3
-fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-ax.set_xlabel("P1")
-ax.set_ylabel("P0")
-Y, X = np.meshgrid(p0s, p1s)
-plt.title("KDF - RF Errors: Gaussian XOR")
-plt.contourf(X, Y, mapping, cmap="RdBu_r", vmin=-0.1, vmax=0.1)
-plt.tight_layout()
-plt.savefig("label_noise/xor_contourf_kdf.pdf")
+plt.savefig("xor_heatmap_kdf.pdf")
 # plt.show()
