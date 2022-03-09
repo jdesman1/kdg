@@ -6,6 +6,7 @@ import seaborn as sns
 from kdg.utils import generate_gaussian_parity
 from kdg import kdf
 from sklearn.ensemble import RandomForestClassifier as rf
+import pickle
 
 
 def label_noise_gp(n_samples, p0=0.0, p1=0.0, n_estimators=500):
@@ -73,8 +74,6 @@ df["error_rf"] = err_rf
 mapping = np.zeros((len(p0s), len(p1s)))
 
 # Setup some plotting parameters
-styles = ["-", "--", "-.", ":", ".", ","]
-alphas = np.arange(1, 0, -0.2)
 sns.set_context("talk")
 fig, ax = plt.subplots(1, 1, figsize=(8, 8))
 
@@ -98,6 +97,10 @@ for j, p0 in enumerate(p0s):
     mapping[j, :] = delta_med
 
     ax.plot(p1s, delta_med, label="p0 = {:.2f}".format(p0))
+
+# Save data
+with open("data/xor_heatmap_kdf.pkl", "wb") as f:
+    pickle.dump(mapping, f)
 
 # Finish plotting figure 1
 right_side = ax.spines["right"]
