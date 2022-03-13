@@ -23,7 +23,7 @@ X["poly"], y["poly"] = generate_polynomial(n_samples, a=[1, 3])
 
 # Heatmap plotting
 func_names = ["GXOR", "Spirals", "Ellipse", "Sinewave", "Polynomial"]
-func_labels = ["Gaussian XOR", "Ellipse", "Spiral", "Sinewave", "Polynomial"]
+func_labels = ["Gaussian XOR", "Spiral", "Ellipse", "Sinewave", "Polynomial"]
 
 fig, ax = plt.subplots(3, 5, figsize=(12, 6))
 
@@ -77,7 +77,7 @@ for i, f in enumerate(func_names):
     ax[2, i].set_aspect("equal")
 
     if i == 0:
-        ax[2, i].set_ylabel("KDN vs. DN Noise Error")
+        ax[2, i].set_ylabel("KDN - DN Noise Error")
 
 plt.tight_layout()
 plt.savefig("plots/label_noise_heatmaps.pdf")
