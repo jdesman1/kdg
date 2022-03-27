@@ -24,19 +24,25 @@ X["poly"], y["poly"] = generate_polynomial(n_samples, a=[1, 3])
 # Heatmap plotting
 func_names = ["GXOR", "Spirals", "Ellipse", "Sinewave", "Polynomial"]
 func_labels = ["Gaussian XOR", "Spiral", "Ellipse", "Sinewave", "Polynomial"]
+p0s = np.arange(0, 0.5, 0.05)
+p1s = np.arange(0, 0.5, 0.05)
+p0_labels = ["{:.1f}".format(p0) for p0 in p0s]
+p0_labels = ["" if i % 2 != 0 else p0_labels[i] for i in range(len(p0_labels))]
+p1_labels = ["{:.1f}".format(p1) for p1 in p1s]
+p1_labels = ["" if i % 2 != 0 else p1_labels[i] for i in range(len(p1_labels))]
 
 fig, ax = plt.subplots(3, 5, figsize=(12, 6))
 
 for i, key in enumerate(X.keys()):
     plot_2dsim(X[key], y[key], ax=ax[0, i])
     ax[0, i].set_aspect("equal")
-    ax[0, i].get_xaxis().set_ticks([])
-    ax[0, i].get_yaxis().set_ticks([])
+    # ax[0, i].get_xaxis().set_ticks([])
+    # ax[0, i].get_yaxis().set_ticks([])
     ax[0, i].set_title(func_labels[i])
 
-    if i == 0:
-        ax[0, i].set_ylabel("Simulation Data")
-
+    # if i == 0:
+    #     ax[0, i].set_ylabel("Simulation Data")
+fig.text(0.005, 0.82, "Simulation Data", va="center", rotation="vertical", fontsize=11)
 
 # KDF plotting
 for i, f in enumerate(func_names):
@@ -46,8 +52,8 @@ for i, f in enumerate(func_names):
 
     sns.heatmap(
         mapping,
-        xticklabels=False,
-        yticklabels=False,
+        xticklabels=p1_labels,
+        yticklabels=p0_labels,
         cmap="RdBu_r",
         ax=ax[1, i],
         center=0,
@@ -55,9 +61,15 @@ for i, f in enumerate(func_names):
         cbar_kws={"shrink": 0.7},
     )
     ax[1, i].set_aspect("equal")
+    ax[1, i].set_yticklabels(ax[1, i].get_yticklabels(), rotation=0)
+    # ax[1, i].set_ylabel("p0")
+    # ax[1, i].set_xlabel("p1")
 
-    if i == 0:
-        ax[1, i].set_ylabel("KDF - RF Noise Error")
+    # if i == 0:
+    #     ax[1, i].set_ylabel("KDF - RF Noise Error")
+fig.text(
+    0.01, 0.50, "KDF - RF Noise Error", va="center", rotation="vertical", fontsize=11
+)
 
 # KDN plotting
 for i, f in enumerate(func_names):
@@ -67,17 +79,21 @@ for i, f in enumerate(func_names):
 
     sns.heatmap(
         mapping,
-        xticklabels=False,
-        yticklabels=False,
+        xticklabels=p1_labels,
+        yticklabels=p0_labels,
         cmap="RdBu_r",
         ax=ax[2, i],
         center=0,
         cbar=False,
     )
     ax[2, i].set_aspect("equal")
+    ax[2, i].set_yticklabels(ax[2, i].get_yticklabels(), rotation=0)
 
-    if i == 0:
-        ax[2, i].set_ylabel("KDN - DN Noise Error")
+    # if i == 0:
+    #     ax[2, i].set_ylabel("KDN - DN Noise Error")
+fig.text(
+    0.01, 0.19, "KDN - DN Noise Error", va="center", rotation="vertical", fontsize=11
+)
 
 plt.tight_layout()
 plt.savefig("plots/label_noise_heatmaps.pdf")
