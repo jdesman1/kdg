@@ -11,6 +11,7 @@ from kdg.utils import (
     generate_sinewave,
     generate_polynomial,
 )
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # 2D simulation plotting
 n_samples = 1e4
@@ -36,21 +37,16 @@ fig, ax = plt.subplots(3, 5, figsize=(12, 6))
 for i, key in enumerate(X.keys()):
     plot_2dsim(X[key], y[key], ax=ax[0, i])
     ax[0, i].set_aspect("equal")
-    # ax[0, i].get_xaxis().set_ticks([])
-    # ax[0, i].get_yaxis().set_ticks([])
     ax[0, i].set_title(func_labels[i])
 
-    # if i == 0:
-    #     ax[0, i].set_ylabel("Simulation Data")
-fig.text(0.005, 0.82, "Simulation Data", va="center", rotation="vertical", fontsize=11)
-
+fig.text(0.09, 0.77, "Simulation Data", va="center", rotation="vertical", fontsize=11)
 # KDF plotting
 for i, f in enumerate(func_names):
     fname = "data/" + f + "_mapping_kdf.pkl"
     with open(fname, "rb") as fp:
         mapping = pickle.load(fp)
 
-    sns.heatmap(
+    hm = sns.heatmap(
         mapping,
         xticklabels=p1_labels,
         yticklabels=p0_labels,
@@ -59,16 +55,34 @@ for i, f in enumerate(func_names):
         center=0,
         cbar=False,
         cbar_kws={"shrink": 0.7},
+        vmax=0.3,
+        vmin=-0.3,
     )
+
+    if i == len(func_names) - 1:
+        # [x, y, width, height]
+        cbar_ax = fig.add_axes([0.90, 0.38, 0.01, 0.23])
+        cbar_ax.tick_params(labelsize=8)
+        sns.heatmap(
+            mapping,
+            xticklabels=p1_labels,
+            yticklabels=p0_labels,
+            cmap="RdBu_r",
+            ax=ax[1, i],
+            center=0,
+            cbar=True,
+            vmax=0.3,
+            vmin=-0.3,
+            cbar_ax=cbar_ax,
+        )
+
     ax[1, i].set_aspect("equal")
     ax[1, i].set_yticklabels(ax[1, i].get_yticklabels(), rotation=0)
     # ax[1, i].set_ylabel("p0")
     # ax[1, i].set_xlabel("p1")
 
-    # if i == 0:
-    #     ax[1, i].set_ylabel("KDF - RF Noise Error")
 fig.text(
-    0.01, 0.50, "KDF - RF Noise Error", va="center", rotation="vertical", fontsize=11
+    0.09, 0.50, "KDF - RF Noise Error", va="center", rotation="vertical", fontsize=11
 )
 
 # KDN plotting
@@ -85,15 +99,34 @@ for i, f in enumerate(func_names):
         ax=ax[2, i],
         center=0,
         cbar=False,
+        vmax=0.3,
+        vmin=-0.3,
     )
+
+    if i == len(func_names) - 1:
+        # [x, y, width, height]
+        cbar_ax = fig.add_axes([0.90, 0.11, 0.01, 0.23])
+        cbar_ax.tick_params(labelsize=8)
+        sns.heatmap(
+            mapping,
+            xticklabels=p1_labels,
+            yticklabels=p0_labels,
+            cmap="RdBu_r",
+            ax=ax[2, i],
+            center=0,
+            cbar=True,
+            vmax=0.3,
+            vmin=-0.3,
+            cbar_ax=cbar_ax,
+        )
+
     ax[2, i].set_aspect("equal")
     ax[2, i].set_yticklabels(ax[2, i].get_yticklabels(), rotation=0)
 
-    # if i == 0:
-    #     ax[2, i].set_ylabel("KDN - DN Noise Error")
 fig.text(
-    0.01, 0.19, "KDN - DN Noise Error", va="center", rotation="vertical", fontsize=11
+    0.09, 0.21, "KDN - DN Noise Error", va="center", rotation="vertical", fontsize=11
 )
 
-plt.tight_layout()
-plt.savefig("plots/label_noise_heatmaps.pdf")
+# plt.tight_layout()
+# plt.show()
+plt.savefig("plots/label_noise_heatmaps.pdf", transparent=True, bbox_inches="tight")
