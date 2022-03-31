@@ -28,9 +28,14 @@ func_labels = ["Gaussian XOR", "Spiral", "Ellipse", "Sinewave", "Polynomial"]
 p0s = np.arange(0, 0.5, 0.05)
 p1s = np.arange(0, 0.5, 0.05)
 p0_labels = ["{:.1f}".format(p0) for p0 in p0s]
-p0_labels = ["" if i % 2 != 0 else p0_labels[i] for i in range(len(p0_labels))]
+p0_labels = [
+    "" if ((p0s[i] * 10) % 2) != 0 else p0_labels[i] for i in range(len(p0_labels))
+]
 p1_labels = ["{:.1f}".format(p1) for p1 in p1s]
-p1_labels = ["" if i % 2 != 0 else p1_labels[i] for i in range(len(p1_labels))]
+p1_labels = [
+    "" if ((p1s[i] * 10) % 2) != 0 else p1_labels[i] for i in range(len(p1_labels))
+]
+
 
 fig, ax = plt.subplots(3, 5, figsize=(12, 6))
 
@@ -62,7 +67,7 @@ for i, f in enumerate(func_names):
     if i == len(func_names) - 1:
         # [x, y, width, height]
         cbar_ax = fig.add_axes([0.90, 0.38, 0.01, 0.23])
-        cbar_ax.tick_params(labelsize=8)
+        cbar_ax.tick_params(labelsize=12)
         sns.heatmap(
             mapping,
             xticklabels=p1_labels,
@@ -78,6 +83,9 @@ for i, f in enumerate(func_names):
 
     ax[1, i].set_aspect("equal")
     ax[1, i].set_yticklabels(ax[1, i].get_yticklabels(), rotation=0)
+    ax[1, i].get_xaxis().set_ticks([])
+    if i != 0:
+        ax[1, i].get_yaxis().set_ticks([])
     # ax[1, i].set_ylabel("p0")
     # ax[1, i].set_xlabel("p1")
 
@@ -106,7 +114,7 @@ for i, f in enumerate(func_names):
     if i == len(func_names) - 1:
         # [x, y, width, height]
         cbar_ax = fig.add_axes([0.90, 0.11, 0.01, 0.23])
-        cbar_ax.tick_params(labelsize=8)
+        cbar_ax.tick_params(labelsize=12)
         sns.heatmap(
             mapping,
             xticklabels=p1_labels,
@@ -122,6 +130,8 @@ for i, f in enumerate(func_names):
 
     ax[2, i].set_aspect("equal")
     ax[2, i].set_yticklabels(ax[2, i].get_yticklabels(), rotation=0)
+    if i != 0:
+        ax[2, i].get_yaxis().set_ticks([])
 
 fig.text(
     0.09, 0.21, "KDN - DN Noise Error", va="center", rotation="vertical", fontsize=11
