@@ -17,7 +17,7 @@ from art.estimators.classification import BlackBoxClassifier
 from art.utils import to_categorical
 import random
 # %%
-def experiment(dataset_id, folder, n_estimators=500, reps=10, n_attack=20):
+def experiment(dataset_id, folder, n_estimators=500, reps=5, n_attack=50):
     dataset = openml.datasets.get_dataset(dataset_id)
     X, y, is_categorical, _ = dataset.get_data(
                 dataset_format="array", target=dataset.default_target_attribute
@@ -62,6 +62,10 @@ def experiment(dataset_id, folder, n_estimators=500, reps=10, n_attack=20):
     doesn't make sense.
     """
     train_samples = [train_samples[-1]]
+
+    # Only use small data for now
+    if train_samples[-1] > 1000:
+        return
     
 
     l2_kdf_list = []
@@ -73,6 +77,7 @@ def experiment(dataset_id, folder, n_estimators=500, reps=10, n_attack=20):
     err_rf = []
     err_kdf = []
     mc_rep = []
+    samples_attack = []
     samples = []
 
     for train_sample in train_samples:        
@@ -128,79 +133,96 @@ def experiment(dataset_id, folder, n_estimators=500, reps=10, n_attack=20):
 
             art_classifier_kdf = BlackBoxClassifier(_predict_kdf, X[indx_to_take_train][0].shape, len(np.unique(y[indx_to_take_train])))
             art_classifier_rf = BlackBoxClassifier(_predict_rf, X[indx_to_take_train][0].shape, len(np.unique(y[indx_to_take_train])))
-            # attack_rf = HopSkipJump(
-            #     classifier=art_classifier_rf,
-            #     targeted=False,
-            #     max_iter=0,  # TODO: examples show 0, try changing
-            #     max_eval=1000,
-            #     init_eval=10,
-            # )
-            # attack_kdf = HopSkipJump(
-            #     classifier=art_classifier_kdf,
-            #     targeted=False,
-            #     max_iter=0,  # TODO: examples show 0, try changing
-            #     max_eval=1000,
-            #     init_eval=10,
-            # )
-            attack_kdf = ZooAttack(
-                classifier=art_classifier_kdf,
-                confidence=0.0,
-                targeted=False,
-                learning_rate=1e-1,
-                max_iter=20,
-                binary_search_steps=10,
-                initial_const=1e-3,
-                abort_early=True,
-                use_resize=False,
-                use_importance=False,
-                nb_parallel=1,
-                batch_size=1,
-                variable_h=0.2,
-            )
-
-            attack_rf = ZooAttack(
+            attack_rf = HopSkipJump(
                 classifier=art_classifier_rf,
-                confidence=0.3, # originally 0.0
                 targeted=False,
-                learning_rate=1e-1,
-                max_iter=20,
-                binary_search_steps=10,
-                initial_const=1e-3,
-                abort_early=True,
-                use_resize=False,
-                use_importance=False,
-                nb_parallel=1,
-                batch_size=1,
-                variable_h=0.2,
+                max_iter=50,  
+                max_eval=1000,
+                init_eval=10,
             )
+            attack_kdf = HopSkipJump(
+                classifier=art_classifier_kdf,
+                targeted=False,
+                max_iter=50,  
+                max_eval=1000,
+                init_eval=10,
+            )
+            # attack_kdf = ZooAttack(
+            #     classifier=art_classifier_kdf,
+            #     confidence=0.0,
+            #     targeted=False,
+            #     learning_rate=1e-1,
+            #     max_iter=20,
+            #     binary_search_steps=10,
+            #     initial_const=1e-3,
+            #     abort_early=True,
+            #     use_resize=False,
+            #     use_importance=False,
+            #     nb_parallel=1,
+            #     batch_size=1,
+            #     variable_h=0.2,
+            # )
 
-            # For computational reasons, attack a random subset
-            # idx = random.sample(indx_to_take_test, n_attack)
-            idx = random.sample(indx_to_take_train, n_attack)
+            # attack_rf = ZooAttack(
+            #     classifier=art_classifier_rf,
+            #     confidence=0.0, # originally 0.0
+            #     targeted=False,
+            #     learning_rate=1e-1,
+            #     max_iter=20,
+            #     binary_search_steps=10,
+            #     initial_const=1e-3,
+            #     abort_early=True,
+            #     use_resize=False,
+            #     use_importance=False,
+            #     nb_parallel=1,
+            #     batch_size=1,
+            #     variable_h=0.2,
+            # )
 
+
+            ### For computational reasons, attack a random subset that is identified correctly
+            # Get indices of correctly classified samples common to both
+            # selection_idx = indx_to_take_test
+            selection_idx = indx_to_take_train
+            proba_kdf = model_kdf.predict_proba(X[selection_idx])
+            proba_rf = model_kdf.rf_model.predict_proba(X[selection_idx])
+            predicted_label_kdf = np.argmax(proba_kdf, axis = 1)
+            predicted_label_rf = np.argmax(proba_rf, axis = 1)
+
+            idx_kdf = np.where(predicted_label_kdf==y[selection_idx])[0]
+            idx_rf = np.where(predicted_label_rf==y[selection_idx])[0]
+            idx_common = list(np.intersect1d(idx_kdf, idx_rf))
+
+            # Randomly sample from the common indices
+            if n_attack > len(idx_common):
+                n_attack = len(idx_common)
+            idx = random.sample(idx_common, n_attack)
+            if n_attack == 0:
+                return
+            
             ### Generate samples
-            x_adv_kdf = attack_kdf.generate(X[idx])
-            x_adv_rf = attack_rf.generate(X[idx])
+            x_adv_kdf = attack_kdf.generate(X[selection_idx][idx])
+            x_adv_rf = attack_rf.generate(X[selection_idx][idx])
 
             # Compute norms
-            l2_kdf = np.mean(np.linalg.norm(X[idx] - x_adv_kdf, ord=2, axis=1))
-            l2_rf = np.mean(np.linalg.norm(X[idx] - x_adv_rf, ord=2, axis=1))
-            linf_rf = np.mean(np.linalg.norm(X[idx] - x_adv_rf, ord=np.inf, axis=1))
-            linf_kdf = np.mean(np.linalg.norm(X[idx] - x_adv_kdf, ord=np.inf, axis=1))
+            l2_kdf = np.mean(np.linalg.norm(X[selection_idx][idx] - x_adv_kdf, ord=2, axis=1))
+            l2_rf = np.mean(np.linalg.norm(X[selection_idx][idx] - x_adv_rf, ord=2, axis=1))
+            linf_rf = np.mean(np.linalg.norm(X[selection_idx][idx] - x_adv_rf, ord=np.inf, axis=1))
+            linf_kdf = np.mean(np.linalg.norm(X[selection_idx][idx] - x_adv_kdf, ord=np.inf, axis=1))
 
             ### Classification
             # Make adversarial prediction
             proba_rf = model_kdf.rf_model.predict_proba(x_adv_rf)
             predicted_label_rf_adv = np.argmax(proba_rf, axis = 1)
-            err_adv_rf = 1 - np.mean(predicted_label_rf_adv == y[idx])
+            err_adv_rf = 1 - np.mean(predicted_label_rf_adv == y[selection_idx][idx])
 
             proba_kdf = model_kdf.predict_proba(x_adv_kdf)
             predicted_label_kdf_adv = np.argmax(proba_kdf, axis = 1)
-            err_adv_kdf = 1 - np.mean(predicted_label_kdf_adv == y[idx])
+            err_adv_kdf = 1 - np.mean(predicted_label_kdf_adv == y[selection_idx][idx])
 
 
-            print("l2_rf = {:.2f}, linf_rf = {:.2f}, err_rf = {:.2f}".format(l2_rf, linf_rf, err_adv_rf))
-            print("l2_kdf = {:.2f}, linf_kdf = {:.2f}, err_kdf = {:.2f}".format(l2_kdf, linf_kdf, err_adv_kdf))
+            print("l2_rf = {:.4f}, linf_rf = {:.4f}, err_rf = {:.4f}".format(l2_rf, linf_rf, err_adv_rf))
+            print("l2_kdf = {:.4f}, linf_kdf = {:.4f}, err_kdf = {:.4f}".format(l2_kdf, linf_kdf, err_adv_kdf))
             
 
             l2_kdf_list.append(l2_kdf)
@@ -211,7 +233,8 @@ def experiment(dataset_id, folder, n_estimators=500, reps=10, n_attack=20):
             err_adv_rf_list.append(err_adv_rf)
 
             mc_rep.append(rep)
-            samples.append(train_sample*len(unique_classes))
+            samples_attack.append(n_attack)
+            samples.append(train_sample)
 
     df = pd.DataFrame() 
     df['l2_kdf'] = l2_kdf_list
@@ -223,6 +246,7 @@ def experiment(dataset_id, folder, n_estimators=500, reps=10, n_attack=20):
     df['err_adv_kdf'] = err_adv_kdf_list
     df['err_adv_rf'] = err_adv_rf_list
     df['rep'] = mc_rep
+    df['samples_attack'] = samples_attack
     df['samples'] = samples
 
     df.to_csv(folder+'/'+'openML_cc18_'+str(dataset_id)+'.csv')
@@ -231,16 +255,16 @@ def experiment(dataset_id, folder, n_estimators=500, reps=10, n_attack=20):
 # os.mkdir(folder)
 # benchmark_suite = openml.study.get_suite('OpenML-CC18')
 # experiment(6, folder, n_estimators=500, reps=2, n_attack=5)
-# experiment(11, folder, n_estimators=500, reps=2, n_attack=5)
+# experiment(11, folder, n_estimators=500, reps=2, n_attack=10)
+# experiment(1497, folder, n_estimators=500, reps=2, n_attack=20)
+# experiment(16, folder, n_estimators=500, reps=2, n_attack=5)
 # for dataset_id in openml.study.get_suite("OpenML-CC18").data:
 #     experiment(dataset_id, folder, n_estimators=500, reps=10, n_attack = 20)
 
-# %%
-
 
 #%%
-folder = 'openml_res_adv_zoo'
-# os.mkdir(folder)
+folder = 'openml_res_adv_hsj_longer'
+os.mkdir(folder)
 benchmark_suite = openml.study.get_suite('OpenML-CC18')
 Parallel(n_jobs=-1,verbose=1)(
         delayed(experiment)(
