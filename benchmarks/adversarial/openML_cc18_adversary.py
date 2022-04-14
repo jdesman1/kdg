@@ -263,7 +263,7 @@ def experiment(dataset_id, folder, n_estimators=500, reps=5, n_attack=50):
 
 
 #%%
-folder = 'openml_res_adv_hsj_longer'
+folder = 'openml_res_adv_hsj'
 os.mkdir(folder)
 benchmark_suite = openml.study.get_suite('OpenML-CC18')
 Parallel(n_jobs=-1,verbose=1)(
@@ -272,22 +272,3 @@ Parallel(n_jobs=-1,verbose=1)(
                 folder
                 ) for dataset_id in openml.study.get_suite("OpenML-CC18").data
             )
-
-'''Parallel(n_jobs=-1,verbose=1)(
-        delayed(experiment_rf)(
-                dataset_id,
-                folder_rf
-                ) for dataset_id in openml.study.get_suite("OpenML-CC18").data
-            )'''
-'''for task_id in benchmark_suite.tasks:
-    filename = 'openML_cc18_' + str(task_id) + '.csv'
-
-    if filename not in files:
-        print(filename)
-        try:
-            experiment(task_id,folder)
-        except:
-            print("couldn't run!")
-        else:
-            print("Ran successfully!")'''
-# %%
